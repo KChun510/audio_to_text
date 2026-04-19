@@ -30,51 +30,75 @@ function return_file_name_from_path(file_path: string): string[] {
 		let file_name = return_file_name_from_path(file_path);
 		const first_half = `${file_name}_part1.mp3`;
 		const second_half = `${file_name}_part2.mp3`;
+		const third_half = `${file_name}_part3.mp3`;
+
+		let audio_file_names: string[] = [];
+		let audio_file_times: number[] = [];
+		let text_file_parts: string[] = []; 
+		let audio_part_num = 0;
+		const max_audio_len = 1800;
 
 		// Get duration using ffprobe
-		const duration = parseFloat(
+		let duration = parseFloat(
 			execSync(
 				`ffprobe -i "${file_path}" -show_entries format=duration -v quiet -of csv="p=0"`
 			).toString()
 		);
 
-		const half = duration / 2;
+		if (duration / 2 < max_audio_len) { // Case where even split, its greater than 30 mins
+			audio_file_names.push(`${file_name}_part${audio_part_num}.mp3`);
+			audio_file_times.push(duration / 2)
+			audio_part_num++;
+			audio_file_names.push(`${file_name}_part${audio_part_num}.mp3`);
+			audio_file_times.push(duration / 2)
+		} else { // Dynamic parting
+			while(duration > 0){
+				(duration - max_audio_len < 0) ? audio_file_times.push(duration) : audio_file_times.push(max_audio_len);
+				audio_file_names.push(`${file_name}_part${audio_part_num}.mp3`);
+				duration -= max_audio_len;
+				audio_part_num++;
+			}
+		}
 
-		console.log(`Splitting file at ${half.toFixed(2)} seconds...`);
+		console.log(`Splitting file into: ${audio_file_times.length} segments.`);
+		let file_names_copy = [...audio_file_names];
+		let file_times_copy = [...audio_file_times];
+		let start_time = 0; 
+		audio_part_number = 0;
 
-		// Split first half
-		execSync(
-			`ffmpeg -y -i "${file_path}" -t ${half} -c copy "${first_half}"`
-		);
+		while(file_names_copy.length > 0  && file_times_copy.length > 0){
+			const part_time = file_times_copy.pop();
+			const part_name = file_names_copy.pop();
+			execSync(
+				`ffmpeg -y -i "${file_path}" -ss ${start_time} -t ${part_time} -c copy "${part_name}"`
+			);
 
-		// Split second half
-		execSync(
-			`ffmpeg -y -i "${file_path}" -ss ${half} -c copy "${second_half}"`
-		);
+			start_time += part_time;
+		}; 
 
-		console.log("Transcribing first half...");
-		const t1 = await config.openai.audio.transcriptions.create({
-			file: fs.createReadStream(first_half),
-			model: "whisper-1",
-			response_format: "text",
-		});
+		file_names_copy = [...audio_file_names];
 
-		console.log("Transcribing second half...");
-		const t2 = await config.openai.audio.transcriptions.create({
-			file: fs.createReadStream(second_half),
-			model: "whisper-1",
-			response_format: "text",
-		});
-
-		const combined = `${t1}\n${t2}`;
+		while(file_names_copy.length > 0){
+			console.log(`Trascribing part: ${audio_part_number}`);
+			const file_part = await config.openai.audio.transcriptions.create({
+				file: fs.createReadStream(file_names_copy.pop()),
+				model: "whisper-1",
+				response_format: "text",
+			});
+			console.log(file_part)
+			text_file_parts.push(file_part);
+			audio_part_number++;
+		};
+		
+		const combined = text_file_parts.join(`\n`);
 
 		fs.writeFileSync(`${output_dir}${file_name}.txt`, combined, "utf-8");
 
 		console.log(`Text output to: ${output_dir}${file_name}.txt`);
 
-		// Cleanup temporary files
-		fs.unlinkSync(first_half);
-		fs.unlinkSync(second_half);
+		while(audio_file_names.length > 0){
+			fs.unlinkSync(audio_file_names.pop());
+		}
 
 		console.log("Temporary split files deleted.");
 
