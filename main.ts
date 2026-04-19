@@ -2,26 +2,12 @@ import * as fs from "fs";
 import { execSync } from "child_process";
 import * as config from "./config";
 
-function return_file_name_from_path(file_path: string): string[] {
-	const rm_spaces = file_path.split(" ").join("");
-	switch(config.what_os()){
-		case config.avail_os.Windows:
-			const temp_split = rm_spaces.split("\\");
-			return 	temp_split[temp_split.length - 1].split(".")[0];
-		case config.avail_os.Linux:
-			const temp_spilt = rm_spaces.split("/");
-			return temp_split[temp_split.length - 1].split(".")[0];
-		default:
-			throw new Error("Non-Compatible System.");
-	}
-}
-
 (async function main() {
 	try {
 		const file_path = process.argv[2];
 		const output_dir = "./text_files/";
 		const max_audio_len = 1800;
-		let file_name = return_file_name_from_path(file_path);
+		let file_name = config.return_file_name_from_path(file_path);
 		let audio_file_names: string[] = [];
 		let audio_file_times: number[] = [];
 		let text_file_parts: string[] = []; 
