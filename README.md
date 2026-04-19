@@ -42,13 +42,13 @@ npx tsx main.ts "./lecture.mp3"
 
 ## Notes
 
-* Accepts `.mp3` files as input
+* Accepts any size`.mp3` file as input ( Note: As file size increase so does token usage. )
 * Built to feed audio context into LLM pipelines
 * Can be extended for transcription, summarization, or chunking
 
 ---
 
-## ⚠️ Requirements
+## Requirements
 
 Make sure `ffmpeg` is installed:
 
