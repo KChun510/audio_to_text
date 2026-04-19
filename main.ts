@@ -20,6 +20,12 @@ function return_file_name_from_path(file_path: string): string[] {
 	try {
 		const file_path = process.argv[2];
 		const output_dir = "./text_files/";
+		const max_audio_len = 1800;
+		let file_name = return_file_name_from_path(file_path);
+		let audio_file_names: string[] = [];
+		let audio_file_times: number[] = [];
+		let text_file_parts: string[] = []; 
+		let audio_part_num = 0;
 
 		if (!file_path || file_path == '' || !fs.existsSync(file_path)) {
 			throw new Error(`File of: ${file_path} does not exist`);
@@ -27,16 +33,6 @@ function return_file_name_from_path(file_path: string): string[] {
 
 		console.log(`Processing your audio into text.....`)
 
-		let file_name = return_file_name_from_path(file_path);
-		const first_half = `${file_name}_part1.mp3`;
-		const second_half = `${file_name}_part2.mp3`;
-		const third_half = `${file_name}_part3.mp3`;
-
-		let audio_file_names: string[] = [];
-		let audio_file_times: number[] = [];
-		let text_file_parts: string[] = []; 
-		let audio_part_num = 0;
-		const max_audio_len = 1800;
 
 		// Get duration using ffprobe
 		let duration = parseFloat(
@@ -45,7 +41,7 @@ function return_file_name_from_path(file_path: string): string[] {
 			).toString()
 		);
 
-		if (duration / 2 < max_audio_len) { // Case where even split, its greater than 30 mins
+		if (duration / 2 < max_audio_len) { // Case where even split, its greater than max_len mins
 			audio_file_names.push(`${file_name}_part${audio_part_num}.mp3`);
 			audio_file_times.push(duration / 2)
 			audio_part_num++;
@@ -61,6 +57,7 @@ function return_file_name_from_path(file_path: string): string[] {
 		}
 
 		console.log(`Splitting file into: ${audio_file_times.length} segments.`);
+
 		let file_names_copy = [...audio_file_names];
 		let file_times_copy = [...audio_file_times];
 		let start_time = 0; 
