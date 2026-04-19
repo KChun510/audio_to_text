@@ -1,5 +1,3 @@
-
-````md
 # Audio Context Extractor
 
 Simple CLI tool to process audio files and pass context into LLM workflows.
@@ -76,7 +74,4 @@ sudo apt install ffmpeg
 
 ```bash
 choco install ffmpeg
-```
-
-```
 ```
