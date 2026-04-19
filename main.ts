@@ -1,16 +1,25 @@
-import { OpenAI } from "openai"
-import dotenv from "dotenv";
 import * as fs from "fs";
 import { execSync } from "child_process";
+import * as config from "./config";
 
-dotenv.config();
-
-const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
-const output_dir = "./text_files/";
+function return_file_name_from_path(file_path: string): string[] {
+	const rm_spaces = file_path.split(" ").join("");
+	switch(config.what_os()){
+		case config.avail_os.Windows:
+			const temp_split = rm_spaces.split("\\");
+			return 	temp_split[temp_split.length - 1].split(".")[0];
+		case config.avail_os.Linux:
+			const temp_spilt = rm_spaces.split("/");
+			return temp_split[temp_split.length - 1].split(".")[0];
+		default:
+			throw new Error("Non-Compatible System.");
+	}
+}
 
 (async function main() {
 	try {
 		const file_path = process.argv[2];
+		const output_dir = "./text_files/";
 
 		if (!file_path || file_path == '' || !fs.existsSync(file_path)) {
 			throw new Error(`File of: ${file_path} does not exist`);
@@ -18,9 +27,7 @@ const output_dir = "./text_files/";
 
 		console.log(`Processing your audio into text.....`)
 
-		const temp_split = file_path.split("/");
-		let file_name = temp_split[temp_split.length - 1].split(".")[0];
-
+		let file_name = return_file_name_from_path(file_path);
 		const first_half = `${file_name}_part1.mp3`;
 		const second_half = `${file_name}_part2.mp3`;
 
@@ -46,14 +53,14 @@ const output_dir = "./text_files/";
 		);
 
 		console.log("Transcribing first half...");
-		const t1 = await openai.audio.transcriptions.create({
+		const t1 = await config.openai.audio.transcriptions.create({
 			file: fs.createReadStream(first_half),
 			model: "whisper-1",
 			response_format: "text",
 		});
 
 		console.log("Transcribing second half...");
-		const t2 = await openai.audio.transcriptions.create({
+		const t2 = await config.openai.audio.transcriptions.create({
 			file: fs.createReadStream(second_half),
 			model: "whisper-1",
 			response_format: "text",
